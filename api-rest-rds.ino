@@ -77,7 +77,7 @@ contador++;
 if (contador >= maxciclos) {
 promedioPM25 = calcularPromedioPM(nombreArchivo,maxciclos,"pm25");// se lee archivo y calculan promedios
 promedioPM10 = calcularPromedioPM(nombreArchivo,maxciclos,"pm10");// se lee archivo y calculan promedios
-if(ConnectWiFi_STA()){
+if(ConnectWiFi_STA()&& promedioPM25 > 0.0 && promedioPM10 > 0.0){
 CrearRegistro(latitud, longitud, promedioPM25, promedioPM10, LoginUser(User, Password));
 WiFi.disconnect(true);
 delay(tmg);
