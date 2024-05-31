@@ -31,7 +31,8 @@ double pm25 = 0.0;      // PM25
 double pm10 = 0.0;      // PM10  
 double latitud = 0.0;   // latitud
 double longitud = 0.0;  // longitud
-
+String ssid = "";
+String password = "";
 DateTime fecha;
   
 void setup() {
@@ -39,6 +40,7 @@ RTCSet();
 SDSet();
 InicioLCD();
 lcd.init();
+lcd.backlight();
 Serial.begin(9600);
 gpsSerial.begin(9600);
 sdsSerial.begin(9600);
@@ -49,6 +51,8 @@ maxciclos = (hora - milisegundosEnHora) / intervalSD;
 }
 
 void loop() {
+ssid = LeerSSID();
+password = LeerPassword();
 unsigned long currentMillis = millis();
 generarPM(); // muestra PMS
 generarLatLng(); // muestra latitud longitud
@@ -56,7 +60,10 @@ if (mostrarIndicador) {
 IndicadorGeneral(latitud, longitud, pm25, pm10); 
 }
 mostrarIndicador = true;
+Serial.print("Maxciclos: ");
 Serial.println(maxciclos);
+
+
 if (currentMillis - previousMillisSD >= intervalSD) {
 static int contador = 0; 
 static double promedioPM25 = 0.0;
@@ -65,19 +72,31 @@ static String nombreArchivo;
 
 previousMillisSD = currentMillis;
 DateTime fecha = DS1307_RTC.now();
+Serial.print("Maxciclos: ");
 Serial.println(maxciclos);
 if (latitud != 0.0 && longitud != 0.0 && pm25 != 0.0 && pm10 != 0.0) {
 nombreArchivo = String(fecha.day()) + "-" + String(fecha.month()) + "-" + String(fecha.year()) +  "-" + String(fecha.hour()) + ".csv";
 crearArchivo(nombreArchivo);
 okcreacionSD();
-guardaInformacionCSV(latitud, longitud, pm25, pm10, fecha, nombreArchivo);
+guardaInformacionCSV(latitud, longitud, pm25, pm10, fecha, nombreArchivo, idDispositivo);
 mostrarIndicador = false;
 okguardarSD();
+
+//temporal mayo
+ConnectWiFi_STA(false, ssid, password);
+CrearRegistro(latitud, longitud, pm25, pm10, LoginUser(User, Password));
+WiFi.disconnect(true);
+delay(tmg);
+mostrarIndicador = false;
+okApi();//indicador
+sdsSerial.end();
+//fin temporal mayo
+
 contador++;
 if (contador >= maxciclos) {
 promedioPM25 = calcularPromedioPM(nombreArchivo,maxciclos,"pm25");// se lee archivo y calculan promedios
 promedioPM10 = calcularPromedioPM(nombreArchivo,maxciclos,"pm10");// se lee archivo y calculan promedios
-if(ConnectWiFi_STA()&& promedioPM25 > 0.0 && promedioPM10 > 0.0){
+if(ConnectWiFi_STA(false,ssid,password)&& promedioPM25 > 0.0 && promedioPM10 > 0.0){
 CrearRegistro(latitud, longitud, promedioPM25, promedioPM10, LoginUser(User, Password));
 WiFi.disconnect(true);
 delay(tmg);
@@ -86,7 +105,7 @@ okApi();//indicador
 sdsSerial.end();
 }else{
 crearArchivo("informacion_manual_aa.csv");
-guardaInformacionCSV(latitud, longitud, promedioPM25, promedioPM10, fecha, "informacion_manual_aa.csv");
+guardaInformacionCSV(latitud, longitud, promedioPM25, promedioPM10, fecha, "informacion_manual_aa.csv", idDispositivo);
 delay(tmg);
 mostrarIndicador = false;
 errApi();
@@ -108,15 +127,17 @@ ESP.restart();
 }
 }
 }
-}
+}//end loop
 
 void generarLatLng() {
 while (gpsSerial.available() > 0) {
     if (gps.encode(gpsSerial.read())) {
       latitud = gps.location.lat();
       longitud = gps.location.lng();
-      Serial.println(latitud);
-      Serial.println(longitud);
+      Serial.print("latitud: ");
+      Serial.println(latitud, 5);
+      Serial.print("longitud: ");
+      Serial.println(longitud, 5);
     }
   }
 }

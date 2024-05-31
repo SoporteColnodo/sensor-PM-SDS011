@@ -1,6 +1,6 @@
 #include <WiFi.h>
 
-bool ConnectWiFi_STA(bool useStaticIP = false)
+bool ConnectWiFi_STA(bool useStaticIP = false, String ssid = "", String password = "")
 {
    Serial.println("");
    WiFi.mode(WIFI_STA);

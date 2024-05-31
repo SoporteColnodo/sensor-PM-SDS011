@@ -9,7 +9,7 @@ int tm = 1000;
 
 void InicioLCD(){
   lcd.clear();
-  lcd.noBacklight();
+  //lcd.noBacklight();
   lcd.setCursor(0, 0);
   lcd.print("AIR Data: ");
   lcd.setCursor(0, 1);

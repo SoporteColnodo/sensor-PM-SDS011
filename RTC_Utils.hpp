@@ -6,6 +6,9 @@ RTC_DS1307 DS1307_RTC;
 void RTCSet() {
   if (!DS1307_RTC.begin()) {
     Serial.println("No existe RTC");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("No existe RTC");
     errRTC();
     while (1);
   }

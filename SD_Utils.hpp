@@ -2,10 +2,14 @@
 #include <SdFat.h>
 #include "indicador.h"
 
+// Conexiones físicas SD:
 #define SPI_SPEED_SD 4000000 // 4MHz
+#define SCK 18
+#define MISO 19
+#define MOSI 23
 #define CS 5
-
 SdFat SD;
+
 File dataFile;
 
 void SDSet(){
@@ -13,6 +17,9 @@ void SDSet(){
   {
     Serial.println("Error al inicializar la tarjeta SD.");
     errSD();
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Error al inicializar la tarjeta microSD");
     while (1);
   }
 }
@@ -32,7 +39,7 @@ bool crearArchivo(String archivo)
         dataFile = SD.open(archivo, FILE_WRITE);
         if (dataFile)
         {
-          dataFile.println("PM25,PM10,Latitud,Longitud,Fecha,Hora");
+          dataFile.println("Titulo,Categoria,PM25,PM10,Latitud,Longitud,idDispositivo,FechaEpoch,Fecha,Hora");
           dataFile.close(); // Cierra el archivo después de escribir.
           Serial.print("Archivo ");
           Serial.print(archivo);
@@ -49,9 +56,11 @@ bool crearArchivo(String archivo)
       }
   }
   return true; // Si el archivo ya existe, también indica fallo.
-}
+}//end bool
 
-void guardaInformacionCSV(double lat, double lng,double pm25, double pm10, DateTime fecha, String archivo)
+
+//guardad datos en csv 
+void guardaInformacionCSV(double lat, double lng,double pm25, double pm10, DateTime fecha, String archivo, String idDispositivo)
 {
   if (!SD.begin(CS, SPI_SPEED_SD))
   {
@@ -63,6 +72,15 @@ void guardaInformacionCSV(double lat, double lng,double pm25, double pm10, DateT
     dataFile = SD.open(archivo, FILE_WRITE);
     if (dataFile)
     {
+         // Calculamos el epoch time a partir del objeto DateTime
+      uint32_t epochTime = fecha.unixtime();
+
+
+      dataFile.print("Aire-");
+      dataFile.print(epochTime);
+      dataFile.print(",");
+      dataFile.print("aire");
+      dataFile.print(",");
       dataFile.print(pm25);
       dataFile.print(",");
       dataFile.print(pm10);
@@ -70,6 +88,10 @@ void guardaInformacionCSV(double lat, double lng,double pm25, double pm10, DateT
       dataFile.print(lat,6);
       dataFile.print(",");
       dataFile.print(lng,6);
+      dataFile.print(",");
+      dataFile.print(idDispositivo);
+      dataFile.print(",");
+      dataFile.print(epochTime); // Guardamos el epoch time
       dataFile.print(",");
       dataFile.print(fecha.year(), DEC);
       dataFile.print('/');
@@ -266,4 +288,52 @@ void logErrorWifi(DateTime fecha, String archivo)
     }
     dataFile.close();
   }
+}
+
+
+String LeerSSID()
+{
+    File dataFile = SD.open("config.txt");
+    if(dataFile)
+    {
+        // Leer el SSID
+        String ssidLinea = dataFile.readStringUntil('\n');
+        int primerComillaSSID = ssidLinea.indexOf('"') + 1;
+        int segundaComillaSSID = ssidLinea.indexOf('"', primerComillaSSID);
+        String ssid = ssidLinea.substring(primerComillaSSID, segundaComillaSSID);
+        // Cerrar el archivo
+        dataFile.close();
+        return ssid;
+    }
+    else
+    {
+        Serial.println("Error al abrir el archivo para lectura.");
+        errSD();
+        return ""; // Retornar una cadena vacía en caso de error
+    }
+}
+
+String LeerPassword()
+{
+    File dataFile = SD.open("config.txt");
+    if(dataFile)
+    {
+        // Saltar la línea del SSID
+        dataFile.readStringUntil('\n');
+        // Leer la contraseña
+        String passwordLinea = dataFile.readStringUntil('\n');
+        int primerComillaPass = passwordLinea.indexOf('"') + 1;
+        int segundaComillaPass = passwordLinea.indexOf('"', primerComillaPass);
+        String password = passwordLinea.substring(primerComillaPass, segundaComillaPass);
+        // Cerrar el archivo
+        dataFile.close();
+        // Retornar la contraseña
+        return password;
+    }
+    else
+    {
+        Serial.println("Error al abrir el archivo para lectura.");
+        errSD();
+        return ""; // Retornar una cadena vacía en caso de error
+    }
 }
